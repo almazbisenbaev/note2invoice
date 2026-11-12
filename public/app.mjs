@@ -33,7 +33,7 @@ async function checkSetup() {
       ? 'The demo owner configures API credentials in Vercel project settings → Environment Variables, then redeploys. Credentials are never entered in this page.'
       : 'Put your credentials in the .env file in the project folder, then save. This page checks for changes automatically.';
     const ready = status.aiConfigured && status.paypalConfigured;
-    $('#setup-label').textContent = ready ? 'Keys added' : 'Setup needed';
+    $('#setup-label').textContent = ready ? 'Connections' : 'Setup needed';
     $('#setup-dot').classList.toggle('amber', !ready);
     $('#ai-setup-status').textContent = status.aiConfigured ? `Key added · ${status.provider}` : 'Add AI_API_KEY';
     $('#paypal-setup-status').textContent = status.paypalConfigured ? 'Credentials added' : 'Add sandbox credentials';
@@ -47,7 +47,7 @@ function setBusy(value, phase = 'extract') {
   $('#notes').disabled = value || Boolean(result) || uncertain;
   $$('[data-example]').forEach(button => { button.disabled = value || Boolean(result) || uncertain; });
   $('#invoice-fields').disabled = value || uncertain;
-  $('#extract-label').textContent = value && phase === 'extract' ? 'Organizing your notes…' : draft ? 'Organize again' : 'Organize with AI';
+  $('#extract-label').textContent = value && phase === 'extract' ? 'Extracting details…' : draft ? 'Extract again' : 'Extract invoice details';
   $('#create-label').textContent = value && phase === 'create' ? 'Creating your PayPal draft…' : 'Create PayPal draft';
   updateCreateButton();
 }
@@ -72,7 +72,7 @@ function addItem(item = { name: '', quantity: '1', unitPrice: '', evidence: '' }
   description.append(name.label, remove);
   const numbers = document.createElement('div'); numbers.className = 'item-numbers';
   const qty = inputField('Quantity', item.quantity, { type: 'number', min: '0.01', max: '1000000', step: '0.01', placeholder: 'Required' }); qty.input.dataset.field = 'quantity';
-  const price = inputField('Unit price (USD)', item.unitPrice, { type: 'number', min: '0', max: '1000000', step: '0.01', placeholder: 'Add a rate' }); price.input.dataset.field = 'unitPrice';
+  const price = inputField('Rate (USD)', item.unitPrice, { type: 'number', min: '0', max: '1000000', step: '0.01', placeholder: 'Add a rate', ariaLabel: 'Unit price (USD)' }); price.input.dataset.field = 'unitPrice';
   const amount = document.createElement('output'); amount.className = 'line-amount'; amount.setAttribute('aria-label', 'Line total');
   numbers.append(qty.label, price.label, amount); row.append(description, numbers);
   if (item.evidence) { const hint = document.createElement('p'); hint.className = 'evidence-hint'; hint.textContent = `From your notes: “${item.evidence}”`; row.append(hint); }
@@ -125,11 +125,8 @@ function showDraft(invoice) {
   $('#warnings').hidden = !(invoice.warnings?.length);
   currencyNeedsConfirmation = invoice.currency !== 'USD'; $('#currency-confirm-wrap').hidden = !currencyNeedsConfirmation; $('#currency-confirm').checked = false;
   $('#review-confirm').checked = false;
-  $('#source-list').replaceChildren();
-  for (const item of invoice.items) { if (item.evidence) { const quote = document.createElement('blockquote'); quote.textContent = item.evidence; $('#source-list').append(quote); } }
-  $('#source-details').hidden = !$('#source-list').children.length;
   setStep(2); updateTotals();
-  $('#notes-status').textContent = 'Organized with AI. Check every detail on the right.';
+  $('#notes-status').textContent = 'Details extracted. Review and edit the invoice before creating it in PayPal.';
   if (window.innerWidth <= 720) $('.invoice-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -189,8 +186,8 @@ $('#download-receipt').addEventListener('click', () => {
 });
 $('#start-again').addEventListener('click', () => {
   clearTab(); result = null; draft = null; uncertain = false; requestId = crypto.randomUUID();
-  $('#success-panel').hidden = true; $('#invoice-form').hidden = true; $('#empty-preview').hidden = false; $('#source-details').hidden = true;
-  $('#invoice-badge').textContent = 'Waiting for notes'; $('#notes').value = ''; $('#notes-status').textContent = 'Your notes stay editable. Nothing is created yet.';
+  $('#success-panel').hidden = true; $('#invoice-form').hidden = true; $('#empty-preview').hidden = false;
+  $('#invoice-badge').textContent = 'No draft yet'; $('#notes').value = ''; $('#notes-status').textContent = '';
   setBusy(false); setStep(1); updateCount(); message(); $('#notes').focus();
 });
 

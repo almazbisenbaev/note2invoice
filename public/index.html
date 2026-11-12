@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Turn freelance work notes into reviewed PayPal sandbox invoice drafts. Extract with AI, check every detail, and create your draft.">
+  <meta name="description" content="Extract client details, services, and rates from work notes. Review and create a PayPal sandbox invoice draft.">
   <meta name="color-scheme" content="light">
-  <title>Note2Invoice — From work notes to invoice</title>
+  <meta name="theme-color" content="#18251f">
+  <title>Note2Invoice — Work notes to PayPal invoice drafts</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   <script type="module" src="/app.mjs"></script>
@@ -14,19 +15,22 @@
   <a class="skip-link" href="#workspace">Skip to workspace</a>
   <div class="shell">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Note2Invoice home"><span class="brand-mark" aria-hidden="true">n<span>2</span></span><span>Note<span class="brand-light">2</span>Invoice<span class="brand-period">.</span></span></a>
-      <div class="top-actions"><span class="sandbox-pill"><span class="dot"></span> PayPal sandbox</span><button id="setup-button" class="setup-button" type="button"><span id="setup-dot" class="dot amber"></span><span id="setup-label">Checking setup</span><span aria-hidden="true">↗</span></button></div>
+      <a class="brand" href="/" aria-label="Note2Invoice home"><span class="brand-mark" aria-hidden="true">n<span>2</span></span><span>Note2Invoice</span></a>
+      <div class="top-actions">
+        <span class="sandbox-pill"><span class="dot"></span> PayPal sandbox</span>
+        <button id="setup-button" class="setup-button" type="button"><span id="setup-dot" class="dot amber"></span><span id="setup-label">Checking setup</span><span aria-hidden="true">↗</span></button>
+      </div>
     </header>
 
     <main id="workspace">
       <section class="intro" aria-labelledby="page-title">
-        <div><p class="eyebrow"><span class="short-line"></span> LESS ADMIN. MORE MAKING.</p><h1 id="page-title">Work done.<br><span>Invoice, almost.</span></h1><p class="intro-copy">Turn your rough work notes into a clear invoice.<br>Let AI do the organizing. You make the final call.</p></div>
-        <div class="intro-note"><span class="note-star" aria-hidden="true">✳</span><p>From “I’ll invoice<br>that later” to done.</p><span class="note-caption">A little less on your plate.</span></div>
+        <h1 id="page-title" aria-label="Turn work notes into an invoice draft">Work notes <span class="title-arrow" aria-hidden="true">→</span> <span class="title-result">Invoice draft</span></h1>
+        <p>AI extracts the client, services, and rates. You review the details and save a draft to PayPal.</p>
       </section>
 
       <ol class="steps" aria-label="Invoice progress">
-        <li id="step-1" class="active" aria-current="step"><span class="step-number">01</span><span>Add your notes</span></li><li class="step-divider" aria-hidden="true"></li>
-        <li id="step-2"><span class="step-number">02</span><span>Make it yours</span></li><li class="step-divider" aria-hidden="true"></li>
+        <li id="step-1" class="active" aria-current="step"><span class="step-number">01</span><span>Add notes</span><span class="step-arrow" aria-hidden="true">→</span></li>
+        <li id="step-2"><span class="step-number">02</span><span>Review details</span><span class="step-arrow" aria-hidden="true">→</span></li>
         <li id="step-3"><span class="step-number">03</span><span>Create in PayPal</span></li>
       </ol>
 
@@ -34,67 +38,88 @@
 
       <div class="workspace-grid">
         <section class="notes-card" aria-labelledby="notes-title">
-          <div class="card-top"><div><p class="overline">THE STARTING POINT</p><h2 id="notes-title">What did you work on?</h2></div><span class="pencil-icon" aria-hidden="true">↗</span></div>
-          <p class="section-description">A few sentences, a project recap, your end-of-day brain dump. Start anywhere.</p>
-          <form id="notes-form">
-            <label class="sr-only" for="notes">Work notes</label>
-            <textarea id="notes" name="notes" minlength="10" maxlength="8000" required placeholder="Website redesign for Alex Chen. 6 hours at $40/hour, plus $30 for hosting. Bill in USD. Client email: alex@example.com."></textarea>
-            <div class="textarea-footer"><span>Include the client, work, rates &amp; currency.</span><span id="character-count">0 / 8,000</span></div>
-            <div class="examples"><span>Try a note</span><button type="button" data-example="design">Design project <span aria-hidden="true">↗</span></button><button type="button" data-example="consulting">Consulting <span aria-hidden="true">↗</span></button><button type="button" data-example="missing">Missing a rate <span aria-hidden="true">↗</span></button></div>
-            <button id="extract-button" class="button primary full-width" type="submit"><span class="button-icon" aria-hidden="true">✦</span><span id="extract-label">Organize with AI</span><span class="button-arrow" aria-hidden="true">→</span></button>
-          </form>
-          <p id="notes-status" class="small-status" role="status" aria-live="polite">Your notes stay editable. Nothing is created yet.</p>
-          <div class="notes-bottom"><span class="small-check" aria-hidden="true">✓</span><div><strong>You’re always in the loop.</strong><p>Review the details before anything reaches PayPal.</p></div></div>
-          <details id="source-details" class="source-details" hidden><summary>See what AI used from your notes</summary><div id="source-list"></div></details>
+          <div class="card-heading"><h2 id="notes-title">Work notes</h2></div>
+          <div class="notes-body">
+            <p id="notes-help" class="section-description">Include the client’s name and email, work completed, quantities, and rates.</p>
+            <form id="notes-form">
+              <div class="examples" aria-label="Example work notes"><span>Examples</span><button type="button" data-example="design">Design project</button><button type="button" data-example="consulting">Consulting</button><button type="button" data-example="missing">Missing a rate</button></div>
+              <label class="sr-only" for="notes">Work notes</label>
+              <div class="notes-input-wrap">
+                <textarea id="notes" name="notes" minlength="10" maxlength="8000" required aria-describedby="notes-help" placeholder="Website redesign for Alex Chen, alex@example.com.&#10;&#10;6 hours at $40/hour.&#10;Hosting setup: $30 flat fee.&#10;Bill in USD."></textarea>
+                <div class="textarea-footer"><span>English · USD</span><span id="character-count">0 / 8,000</span></div>
+              </div>
+              <button id="extract-button" class="button primary full-width" type="submit"><span id="extract-label">Extract invoice details</span><span class="button-arrow" aria-hidden="true">→</span></button>
+            </form>
+            <p id="notes-status" class="small-status" role="status" aria-live="polite"></p>
+          </div>
         </section>
 
-        <section class="invoice-card" aria-label="Invoice preview" aria-live="polite">
-          <div class="invoice-top"><span class="overline">YOUR INVOICE</span><span id="invoice-badge" class="tiny-badge">Waiting for notes</span></div>
+        <section class="invoice-card" aria-labelledby="invoice-title" aria-live="polite">
+          <div class="invoice-top"><h2 id="invoice-title">Invoice draft</h2><span id="invoice-badge" class="tiny-badge">No draft yet</span></div>
           <div id="empty-preview" class="empty-preview">
-            <div class="paper-illustration" aria-hidden="true"><div class="paper-fold"></div><span class="paper-symbol">↗</span><div class="paper-line long"></div><div class="paper-line"></div><div class="paper-rule"></div><div class="paper-row"><span></span><span></span></div><div class="paper-row"><span></span><span></span></div><div class="paper-row"><span></span><span></span></div><div class="paper-total"></div><span class="paper-check">✓</span></div>
-            <h2 id="invoice-title">Good work deserves<br>a good invoice.</h2><p>Add your notes on the left.<br>Your editable draft will appear here.</p><div class="empty-caption"><span aria-hidden="true">✦</span> A little AI. A lot less paperwork.</div>
+            <p class="empty-instruction">Extract your notes to fill in this draft.</p>
+            <div class="empty-client"><span class="field-caption">BILL TO</span><strong>Client name</strong><span>Client email</span></div>
+            <div class="empty-table" aria-label="Invoice fields to be extracted">
+              <div class="empty-table-head"><span>Service</span><span>Qty</span><span>Rate</span><span>Amount</span></div>
+              <div class="empty-table-row"><span>Work from your notes</span><span>—</span><span>—</span><span>—</span></div>
+            </div>
+            <div class="empty-total"><div><strong>Total</strong><span>USD</span></div><strong>—</strong></div>
+            <div class="empty-review-note"><span aria-hidden="true">↳</span><p>Missing details will be flagged.<br>You can edit every field before creating the draft.</p></div>
           </div>
 
           <form id="invoice-form" hidden>
-            <div class="review-heading"><h2>Make it yours.</h2><p>Check the details. Edit anything.</p></div>
-            <div id="warnings" class="warnings" hidden><strong>A few details to review</strong><ul id="warning-list"></ul></div>
+            <p class="review-instruction">Check the client, line items, and total. All fields are editable.</p>
+            <div id="warnings" class="warnings" hidden><strong>Details need your review</strong><ul id="warning-list"></ul></div>
             <fieldset id="invoice-fields">
               <legend class="sr-only">Invoice details</legend>
-              <div class="field-grid"><label>Client name<input id="client-name" name="clientName" required maxlength="200" autocomplete="name" placeholder="Who is this for?"></label><label>Client email<input id="client-email" name="clientEmail" type="email" required maxlength="254" autocomplete="email" placeholder="client@example.com"></label></div>
-              <div class="line-heading"><span>WORK &amp; SERVICES</span><span>USD</span></div>
+              <div class="field-grid"><label>Client name<input id="client-name" name="clientName" required maxlength="200" autocomplete="name" placeholder="Client name"></label><label>Client email<input id="client-email" name="clientEmail" type="email" required maxlength="254" autocomplete="email" placeholder="client@example.com"></label></div>
+              <div class="line-heading"><span>Line items</span><span>USD</span></div>
               <div id="line-items"></div>
-              <button id="add-item" class="text-button" type="button">+ Add a line item</button>
-              <label class="note-label">Note to client <span class="optional">optional</span><input id="invoice-note" name="note" maxlength="1000" placeholder="A small thank-you goes a long way."></label>
-              <div class="total-row"><div><span>Invoice total</span><small>USD · No tax or discounts included</small></div><output id="invoice-total" aria-label="Invoice total">$0.00</output></div>
+              <button id="add-item" class="text-button add-item" type="button">+ Add line item</button>
+              <label class="note-label">Note to client <span class="optional">optional</span><input id="invoice-note" name="note" maxlength="1000" placeholder="Add a reference or note"></label>
+              <div class="total-row"><div><span>Invoice total</span><small>USD · No tax or discounts</small></div><output id="invoice-total" aria-label="Invoice total">$0.00</output></div>
               <label id="currency-confirm-wrap" class="check-label currency-confirm" hidden><input id="currency-confirm" type="checkbox"><span>I confirm the reviewed amounts are in USD. The app has not converted any currency.</span></label>
               <label class="check-label"><input id="review-confirm" type="checkbox" required><span>I’ve checked the client, line items, and total.</span></label>
               <button id="create-button" class="button primary full-width" type="submit" disabled><span id="create-label">Create PayPal draft</span><span class="button-arrow" aria-hidden="true">→</span></button>
-              <p class="creation-footnote">Saves a sandbox draft. No email is sent and no payment is taken.</p>
+              <p class="creation-footnote">Creates a sandbox draft. No email is sent or payment taken.</p>
             </fieldset>
           </form>
 
           <div id="success-panel" class="success-panel" hidden>
-            <div class="success-icon" aria-hidden="true">✓</div><p class="overline">ONE LESS THING TO DO</p><h2>Your draft is in PayPal.</h2><p class="success-copy">Your work notes, organized and saved.<br>Ready for your next step.</p>
+            <div class="success-heading"><span class="success-icon" aria-hidden="true">✓</span><div><h3>Draft created.</h3><p>Saved to your PayPal sandbox account.</p></div></div>
             <div class="receipt"><div><span>Total</span><strong id="result-total"></strong></div><div><span>Status</span><strong id="result-status"></strong></div><div><span>Invoice ID</span><code id="result-id"></code></div><div><span>Invoice number</span><code id="result-number"></code></div></div>
-            <p id="verification" class="verification"></p><p class="result-note">This is a sandbox draft, not a sent invoice or a completed payment.</p>
-            <a id="paypal-link" class="button primary full-width" target="_blank" rel="noopener noreferrer" href="https://www.sandbox.paypal.com/invoice/s/manage">Open PayPal sandbox <span aria-hidden="true">↗</span></a>
+            <p id="verification" class="verification"></p>
+            <a id="paypal-link" class="button primary full-width" target="_blank" rel="noopener noreferrer" href="https://www.sandbox.paypal.com/invoice/s/manage">Open PayPal sandbox <span class="button-arrow" aria-hidden="true">↗</span></a>
             <div class="result-actions"><button id="refresh-status" class="text-button" type="button">Refresh status</button><button id="download-receipt" class="text-button" type="button">Download record ↓</button></div>
             <button id="start-again" class="button secondary full-width" type="button">Start another invoice</button>
           </div>
         </section>
       </div>
-
-      <div class="under-workspace"><span><span class="mini-dot"></span> Built for the independent way of working.</span><span>Your notes → AI → Your review → PayPal</span></div>
     </main>
-    <footer><span>Note2Invoice<span class="brand-period">.</span></span><p>Demo workspace · Sandbox only</p><button id="privacy-button" class="text-button" type="button">How your data is used</button></footer>
+
+    <footer><p>Sandbox demo. Use fictional client details.</p><button id="privacy-button" class="text-button" type="button">Data &amp; privacy ↗</button></footer>
   </div>
 
-  <dialog id="setup-dialog"><div class="dialog-top"><h2>A quick setup.</h2><button id="close-setup" class="close-button" aria-label="Close setup" type="button">×</button></div><p id="setup-instructions">Checking server configuration…</p><div class="setup-status-list"><div><strong>AI model</strong><span id="ai-setup-status">Checking…</span></div><div><strong>PayPal sandbox</strong><span id="paypal-setup-status">Checking…</span></div></div><p class="setup-help">These indicators check whether values are present. The first extraction and invoice request verify the credentials.</p><pre>PAYPAL_CLIENT_ID=your_sandbox_client_id
+  <dialog id="setup-dialog">
+    <div class="dialog-top"><h2>Connections</h2><button id="close-setup" class="close-button" aria-label="Close setup" type="button">×</button></div>
+    <p id="setup-instructions">Checking server configuration…</p>
+    <div class="setup-status-list"><div><strong>AI model</strong><span id="ai-setup-status">Checking…</span></div><div><strong>PayPal sandbox</strong><span id="paypal-setup-status">Checking…</span></div></div>
+    <p class="setup-help">These indicators check whether credentials are present. API requests verify that they work.</p>
+    <pre>PAYPAL_CLIENT_ID=your_sandbox_client_id
 PAYPAL_CLIENT_SECRET=your_sandbox_secret
 PAYPAL_MERCHANT_EMAIL=your_business_sandbox_email
 
 AI_PROVIDER=meta
-AI_API_KEY=your_meta_api_key</pre><p class="setup-help">Use the sandbox business account associated with your PayPal app. The app reads secrets only on the server.</p><button id="recheck-setup" class="button secondary full-width" type="button">Check again</button></dialog>
-  <dialog id="privacy-dialog"><div class="dialog-top"><h2>Your data, plainly.</h2><button id="close-privacy" class="close-button" aria-label="Close data information" type="button">×</button></div><p>When you select <strong>Organize with AI</strong>, your work notes are sent to the configured AI provider.</p><p>When you confirm <strong>Create PayPal draft</strong>, the reviewed client details and line items are sent to PayPal’s sandbox.</p><p>API credentials stay on the server. The app does not store your notes. Request records contain a request hash, invoice ID, status, and total; these records are temporary on the hosted demo. Stable PayPal request IDs and invoice numbers help prevent duplicate drafts. Your last creation attempt and result are saved in this browser tab until you start another invoice or close the tab.</p><p>Use fictional client details for this hackathon demo. The hosted demo uses the owner's sandbox account.</p></dialog>
+AI_API_KEY=your_meta_api_key</pre>
+    <p class="setup-help">Use the business sandbox account associated with your PayPal app. Credentials stay on the server.</p>
+    <button id="recheck-setup" class="button secondary full-width" type="button">Check connections</button>
+  </dialog>
+  <dialog id="privacy-dialog">
+    <div class="dialog-top"><h2>Data &amp; privacy</h2><button id="close-privacy" class="close-button" aria-label="Close data information" type="button">×</button></div>
+    <p><strong>Work notes</strong> are sent to the configured AI provider when you extract invoice details. The app does not store the notes on its server.</p>
+    <p><strong>Reviewed invoice details</strong> are sent to PayPal sandbox only when you select Create PayPal draft. No email is sent and no payment is taken.</p>
+    <p><strong>Credentials stay on the server.</strong> The hosted demo uses the owner’s AI key and sandbox account. Use fictional client details.</p>
+    <p>Request records contain a hash, invoice ID, status, and total; these records are temporary on the hosted demo. Your last attempt and result stay in this browser tab until you start another invoice or close the tab.</p>
+  </dialog>
 </body>
 </html>

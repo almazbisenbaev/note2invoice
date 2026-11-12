@@ -2,6 +2,8 @@
 
 **Turn rough freelance work notes into reviewed PayPal invoice drafts.**
 
+[Open the live demo](https://note2invoice.vercel.app/)
+
 Paste what you worked on. AI extracts the client, services, quantities, and prices. Review and edit the result, confirm the details, then create a real draft in the PayPal sandbox. The app retrieves the invoice from PayPal to verify its ID and status.
 
 
@@ -58,16 +60,16 @@ The status indicator only reports whether configuration values are present. Succ
 
 ## Judge's walkthrough
 
-1. Run `npm start` with your own sandbox and AI credentials configured above.
+1. Open the [hosted demo](https://note2invoice.vercel.app/), or run `npm start` with your own sandbox and AI credentials configured above.
 2. Select **Design project** to insert fictional example notes.
-3. Select **Organize with AI**. The notes are sent to the configured model; this is not a canned parsing response.
+3. Select **Extract invoice details**. The notes are sent to the configured model; this is not a canned parsing response.
 4. Verify two lines: website redesign, 6 × $40; hosting setup, 1 × $30. Expected total: **$270.00 USD**.
 5. Edit any field as needed, then check **I've checked the client, line items, and total**.
 6. Select **Create PayPal draft**. The result should show the PayPal invoice ID, `DRAFT` status, and a verification message after the read request succeeds.
 7. Use **Open PayPal sandbox** to view the merchant account, or **Refresh status** to retrieve the invoice again.
-8. For a second demonstration, select **Start another invoice → Missing a rate → Organize with AI**. The revision rate should be empty and creation disabled until it is supplied and the invoice reviewed. AI output can vary; always check it.
+8. For a second demonstration, select **Start another invoice → Missing a rate → Extract invoice details**. The revision rate should be empty and creation disabled until it is supplied and the invoice reviewed. AI output can vary; always check it.
 
-The client email in the sample is fictional. No email is sent because the application never calls the send-invoice endpoint. A local runnable build is the intended hackathon demonstration; no hosted deployment is included.
+The client email in the sample is fictional. No email is sent because the application never calls the send-invoice endpoint. The hosted demo uses the owner's sandbox account; local runs use the credentials you configure.
 
 ## What the AI does
 
