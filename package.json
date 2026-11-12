@@ -1,0 +1,15 @@
+{
+  "name": "note2invoice",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turn freelance work notes into reviewed PayPal sandbox invoice drafts with AI.",
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check server.mjs && node --check public/app.mjs && node --test test/*.test.mjs"
+  },
+  "license": "MIT"
+}
