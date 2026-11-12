@@ -16,11 +16,22 @@ P.S: There are no npm dependencies or build steps.
 
 
 ```sh
-# Fill in the credentials in .env., then...
+cp .env.example .env
+# Fill in the credentials in .env, then:
 npm start
 ```
 
 Then open **http://localhost:3000**.
+
+## Deploy to Vercel
+
+Import this repository with its root directory set to `.`. Leave Build Command and Output Directory unset. The exported Node.js server is the entrypoint; `vercel.json` includes the frontend files and allows 120 seconds for upstream requests. Node.js is pinned to 22.x.
+
+In **Project Settings → Environment Variables**, add `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MERCHANT_EMAIL`, `AI_PROVIDER=meta`, and `AI_API_KEY` for Production (and Preview if needed), then redeploy. `AI_MODEL` and `AI_BASE_URL` are optional. Do not upload `.env` or put keys in `public/`. `/api/health` reports only configuration presence, never credentials.
+
+The hosted version accepts HTTPS requests for the deployment, branch, and production domains supplied by Vercel. This is a shared sandbox demo: visitors use the owner's AI credits and sandbox merchant account. Use fictional data. For restricted access, configure Vercel Deployment Protection; authenticated users, per-user credentials, and durable usage limits are outside this prototype.
+
+Vercel's filesystem is read-only except for temporary storage. Hosted operation records are cached in `/tmp` and can disappear between instances. Each logical creation has a stable `PayPal-Request-Id` and invoice number, so [PayPal's idempotency protection](https://developer.paypal.com/invoicing/troubleshooting#duplicate-invoices-from-retried-requests) also applies across instances. Never automatically retry an uncertain creation; inspect the sandbox dashboard first. Local runs retain the durable `.local/operations/` ledger.
 
 
 ### PayPal
@@ -89,7 +100,7 @@ A local operation record in `.local/operations/` prevents the same creation requ
 
 ## Data and prototype limits
 
-- The server binds to loopback only and rejects foreign Host/Origin headers. It is not intended to be exposed on the public internet without adding authentication, per-user credentials, and usage controls.
+- Local runs bind to loopback and reject foreign Host/Origin headers. Vercel runs allow the project's HTTPS origins and remain a shared sandbox prototype, not a multi-user billing service.
 - Notes are sent to the selected AI provider. Reviewed invoice details are sent to PayPal sandbox.
 - The app does not persist raw notes. Local operation files contain a request hash and result metadata; the browser tab keeps the last creation-attempt marker and result. PayPal and the AI provider apply their own data policies.
 - Supported scope: English notes, USD, line items, and an optional note. Taxes, discounts, due dates, attachments, sending, payment capture, and multi-user access are outside this version.

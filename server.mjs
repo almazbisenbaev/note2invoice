@@ -1,7 +1,8 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { loadConfig, publicConfig } from './lib/config.mjs';
 import { AppError, validateInvoice } from './lib/invoice.mjs';
 import { extractInvoice } from './lib/ai.mjs';
@@ -26,15 +27,28 @@ async function readJson(req) {
   catch { throw new AppError('Request must contain valid JSON.'); }
 }
 
-export function createApp({ configLoader = loadConfig, fetcher = fetch, store = new OperationStore(fileURLToPath(new URL('./.local/operations', import.meta.url))) } = {}) {
+export function deploymentOrigins(env = process.env) {
+  if (env.VERCEL !== '1') return [];
+  return [env.VERCEL_URL, env.VERCEL_PROJECT_PRODUCTION_URL, env.VERCEL_BRANCH_URL]
+    .filter(Boolean).map(host => `https://${host}`);
+}
+
+export function operationDirectory(env = process.env) {
+  // Vercel's application bundle is read-only. /tmp is a cache, not durable storage.
+  return env.VERCEL === '1' ? join(tmpdir(), 'note2invoice-operations') : fileURLToPath(new URL('./.local/operations', import.meta.url));
+}
+
+export function createApp({ configLoader = loadConfig, fetcher = fetch, store = new OperationStore(operationDirectory()), allowedOrigins = deploymentOrigins() } = {}) {
   let busyAI = false;
   return http.createServer(async (req, res) => {
     const send = (status, body) => { res.writeHead(status, { ...securityHeaders, 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
     try {
       const host = req.headers.host || '';
-      // Local app: reject DNS rebinding and cross-origin requests before any external API call.
-      if (!/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(host)) throw new AppError('This app accepts local requests only.', 403);
-      if (req.headers.origin && req.headers.origin !== `http://${host}`) throw new AppError('Cross-origin requests are not allowed.', 403);
+      // Accept loopback locally and only this project's trusted HTTPS origins when hosted.
+      const local = /^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(host);
+      const origin = local ? `http://${host}` : `https://${host}`;
+      if (!local && !allowedOrigins.includes(origin)) throw new AppError('This host is not allowed.', 403);
+      if (req.headers.origin && req.headers.origin !== origin) throw new AppError('Cross-origin requests are not allowed.', 403);
       const path = new URL(req.url, `http://${host}`).pathname;
       if (req.method === 'GET' && publicFiles[path]) {
         const [file, type] = publicFiles[path];
@@ -66,10 +80,14 @@ export function createApp({ configLoader = loadConfig, fetcher = fetch, store = 
     } catch (error) {
       // Never log upstream bodies, work notes, credentials, or raw exception messages.
       if (!(error instanceof AppError)) console.error('Request failed:', error?.name || 'Error');
-      send(error instanceof AppError ? error.status : 500, { error: error instanceof AppError ? error.message : 'Something went wrong locally. Please retry or check the server terminal.', code: error.code || 'SERVER_ERROR' });
+      send(error instanceof AppError ? error.status : 500, { error: error instanceof AppError ? error.message : 'Something went wrong on the server. Please retry or check the server logs.', code: error.code || 'SERVER_ERROR' });
     }
   });
 }
+
+// Vercel imports the entrypoint rather than executing it through `node server.mjs`.
+// Export a server without opening a port; the platform supplies its listener.
+export default createApp();
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const config = await loadConfig();

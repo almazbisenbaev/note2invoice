@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import http from 'node:http';
-import { createApp } from '../server.mjs';
+import deployedServer, { createApp, deploymentOrigins, operationDirectory } from '../server.mjs';
 import { validateInvoice, normalizeExtraction, paypalPayload, AppError } from '../lib/invoice.mjs';
 import { extractInvoice } from '../lib/ai.mjs';
 import { OperationStore } from '../lib/operations.mjs';
@@ -68,13 +68,69 @@ test('AI errors do not disclose upstream bodies or keys', async () => {
 });
 test('PayPal supports both the minimal href response and direct representation', async () => {
   for (const body of [{ href: `${PAYPAL_BASE}/v2/invoicing/invoices/INV2-TEST-1234-ABCD-EFGH` }, { id: 'INV2-TEST-1234-ABCD-EFGH', status: 'DRAFT' }]) {
-    const client = new PayPalClient(config, async (url) => {
+    const client = new PayPalClient(config, async (url, options) => {
       assert.ok(url.startsWith(PAYPAL_BASE));
+      if (!url.endsWith('/token')) assert.equal(options.headers['PayPal-Request-Id'], 'N2I-123');
       return url.endsWith('/token') ? json({ access_token: 'test-token' }) : json(body, 201);
     });
     await client.authenticate();
     assert.equal((await client.create(validateInvoice(draft()), 'N2I-123')).id, 'INV2-TEST-1234-ABCD-EFGH');
   }
+});
+
+test('serverless retries keep the PayPal idempotency key and invoice number across empty caches', async t => {
+  const attempts = [];
+  const fetcher = async (url, options) => {
+    if (url.endsWith('/token')) return json({ access_token: 'test-token' });
+    if (options.method === 'POST') {
+      const payload = JSON.parse(options.body);
+      attempts.push({ requestId: options.headers['PayPal-Request-Id'], invoiceNumber: payload.detail.invoice_number });
+      return json({ id: 'INV2-TEST-1234-ABCD-EFGH', status: 'DRAFT' }, 201);
+    }
+    return json({ id: 'INV2-TEST-1234-ABCD-EFGH', status: 'DRAFT' });
+  };
+  const requestId = randomUUID();
+  for (let i = 0; i < 2; i++) {
+    const store = await temporaryStore(t);
+    await store.create(requestId, validateInvoice(draft()), new PayPalClient(config, fetcher));
+  }
+  assert.deepEqual(attempts[0], attempts[1]);
+  assert.ok(attempts[0].requestId.length > 0);
+});
+
+test('duplicate invoice numbers stop retries without encouraging a new invoice', async () => {
+  const client = new PayPalClient(config, async () => json({ details: [{ issue: 'DUPLICATE_INVOICE_NUMBER' }] }, 422));
+  await assert.rejects(() => client.create(validateInvoice(draft()), 'N2I-123'), { code: 'PAYPAL_UNCERTAIN' });
+});
+
+test('Vercel can import a server without starting a listener, with temporary records and project-specific origins', () => {
+  assert.ok(deployedServer instanceof http.Server);
+  assert.equal(deployedServer.listening, false);
+  assert.equal(operationDirectory({ VERCEL: '1' }), join(tmpdir(), 'note2invoice-operations'));
+  assert.match(operationDirectory({}), /\.local\/operations$/);
+  assert.deepEqual(deploymentOrigins({ VERCEL: '1', VERCEL_URL: 'preview.vercel.app', VERCEL_PROJECT_PRODUCTION_URL: 'note2invoice.vercel.app' }), ['https://preview.vercel.app', 'https://note2invoice.vercel.app']);
+  assert.deepEqual(deploymentOrigins({ VERCEL_URL: 'preview.vercel.app' }), []);
+});
+
+test('hosted requests accept same-origin HTTPS and reject other origins and hosts', async t => {
+  const store = await temporaryStore(t);
+  let upstreamCalls = 0;
+  const server = createApp({ configLoader: async () => config, store, allowedOrigins: ['https://note2invoice.vercel.app'], fetcher: async () => { upstreamCalls++; return json({ choices: [{ message: { content: JSON.stringify({ ...draft(), warnings: [] }) } }] }); } });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const request = (host, origin, method = 'POST', path = '/api/extract') => new Promise((resolve, reject) => {
+    const req = http.request({ hostname: '127.0.0.1', port: server.address().port, path, method, headers: { Host: host, ...(origin ? { Origin: origin } : {}), 'Content-Type': 'application/json' } }, res => {
+      res.resume(); res.on('end', () => resolve(res.statusCode));
+    });
+    req.on('error', reject);
+    req.end(method === 'POST' ? JSON.stringify({ notes: 'Six hours of web design at $40 per hour.' }) : undefined);
+  });
+  assert.equal(await request('note2invoice.vercel.app', 'https://note2invoice.vercel.app'), 200);
+  assert.equal(await request('note2invoice.vercel.app', 'https://evil.example'), 403);
+  assert.equal(await request('note2invoice.vercel.app', 'http://note2invoice.vercel.app'), 403);
+  assert.equal(await request('another-project.vercel.app', 'https://another-project.vercel.app'), 403);
+  assert.equal(await request('note2invoice.vercel.app', null, 'GET', '/'), 200);
+  assert.equal(upstreamCalls, 1);
 });
 test('PayPal timeouts after a write are explicitly marked uncertain', async () => {
   const client = new PayPalClient(config, async () => { throw new Error('timeout'); });

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Turn freelance work notes into reviewed PayPal sandbox invoice drafts with AI.",
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": { "node": "22.x" },
   "scripts": {
     "start": "node server.mjs",
     "dev": "node --watch server.mjs",

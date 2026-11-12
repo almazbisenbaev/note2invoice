@@ -20,8 +20,8 @@ function setStep(step) {
 async function api(path, options = {}) {
   let response;
   try { response = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } }); }
-  catch { throw new Error('Cannot reach the local server. Make sure npm start is running, then try again.'); }
-  const data = await response.json();
+  catch { throw new Error('Cannot reach the server. Check your connection and try again.'); }
+  const data = await response.json().catch(() => ({ error: `The server is unavailable (HTTP ${response.status}). Please try again shortly.` }));
   if (!response.ok) { const error = new Error(data.error || 'The request failed.'); error.code = data.code; throw error; }
   return data;
 }
@@ -29,6 +29,9 @@ async function api(path, options = {}) {
 async function checkSetup() {
   try {
     const status = await api('/api/health');
+    $('#setup-instructions').textContent = status.hosted
+      ? 'The demo owner configures API credentials in Vercel project settings → Environment Variables, then redeploys. Credentials are never entered in this page.'
+      : 'Put your credentials in the .env file in the project folder, then save. This page checks for changes automatically.';
     const ready = status.aiConfigured && status.paypalConfigured;
     $('#setup-label').textContent = ready ? 'Keys added' : 'Setup needed';
     $('#setup-dot').classList.toggle('amber', !ready);

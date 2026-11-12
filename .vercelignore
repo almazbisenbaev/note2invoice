@@ -1,0 +1,8 @@
+.env
+.env.*
+.local
+artifacts
+test-results
+coverage
+test
+*.log
